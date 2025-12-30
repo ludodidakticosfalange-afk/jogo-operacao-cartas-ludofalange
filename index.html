@@ -66,15 +66,17 @@
   }
 
   .memCard{
-  position:relative;
-  min-height:260px; /* base visual */
-  height:auto;      /* cresce conforme conteúdo */
-  perspective:1200px;
-}
+    position:relative;
+    height:400px;
+    min-height:400px;
+    max-height:400px;
+    perspective:1200px;
+  }
 
   .inner{
     position:relative; inset:0;
-min-height:100%;
+    min-height:100%;
+    height:100%;
     transform-style:preserve-3d;
     transition: transform .55s cubic-bezier(.2,.9,.2,1);
     border-radius:18px;
@@ -83,23 +85,23 @@ min-height:100%;
   .memCard.locked  .inner{ transform: rotateY(180deg); }
 
   .face{
-  grid-area:stack;              /* ✅ ocupa a área da carta */
-  border-radius:18px;
-  backface-visibility:hidden;
-  overflow:hidden;              /* ✅ respeita a borda arredondada */
-  border:2px solid rgba(255,255,255,.10);
-  box-shadow:0 18px 55px rgba(0,0,0,.35);
-}
-
+    position:absolute;
+    inset:0;
+    height:100%;
+    border-radius:18px;
+    backface-visibility:hidden;
+    overflow:hidden;
+    border:2px solid rgba(255,255,255,.10);
+    box-shadow:0 18px 55px rgba(0,0,0,.35);
+  }
 
   /* VERSO (capa) */
   .back{
-  position:relative;            /* ✅ base pro .stamp absolute */
-  background: rgba(0,0,0,.2);
-  display:grid;
-  place-items:stretch;
-}
-
+    position:relative;
+    background: rgba(0,0,0,.2);
+    display:grid;
+    place-items:stretch;
+  }
   .back img{
     width:100%;
     height:100%;
@@ -168,7 +170,7 @@ min-height:100%;
     padding:6px;
   }
   .silBox .silTxt{ font-size:12px; font-weight:900; opacity:.95; }
-  .silBox .silHint{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .silBox .silHint{ display:none; }
 
   .opts{ display:grid; gap:8px; margin-top:auto; }
   .opt{
@@ -202,47 +204,175 @@ min-height:100%;
   .sil   { border-color: rgba(168,85,247,.65) !important; }
   .dis   { border-color: rgba(239,68,68,.55) !important; }
 
-  /* ===== IMPRESSÃO = IGUAL À TELA =====
-     - mesma carta
-     - só força todas viradas + trava interação
-     - organiza A4 em 3 colunas
-  */
+  /* ===== ÁREA DE IMPRESSÃO (FRENTE + CAPA) ===== */
+  .printArea{ display:none; }
+  .sheetTitle{
+    display:none;
+    font-weight:900;
+    margin:0 0 6mm 0;
+    font-size:12pt;
+    color:#000;
+  }
+  .sheetGrid{
+    display:grid;
+    grid-template-columns: repeat(3, 56mm);
+    gap:8mm;
+    justify-content:center;
+    align-items:start;
+  }
+  .pCard{
+    width:56mm;
+    height:87mm;
+    border-radius:18px;
+    overflow:hidden;
+    border:2px solid rgba(0,0,0,.12);
+    page-break-inside: avoid;
+    break-inside: avoid;
+    background:#fff;
+  }
+
+  /* Frente impressa (2D) */
+  .pFront{
+    height:100%;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    background:#fff;
+    color:#000;
+  }
+  .pTopline{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    padding:8px 10px;
+    border-radius:14px;
+    border:1px solid rgba(0,0,0,.18);
+    background:#fff;
+    font-weight:900;
+    font-size:10pt;
+  }
+  .pTag{
+    padding:3px 7px;
+    border-radius:999px;
+    border:1px solid rgba(0,0,0,.18);
+    background:#fff;
+    white-space:nowrap;
+  }
+  .pQ{ font-weight:900; font-size:10.5pt; line-height:1.15; }
+
+  .pOpts{ display:grid; gap:6px; margin-top:auto; }
+  .pOpt{
+    border:1px solid rgba(0,0,0,.20);
+    border-radius:10px;
+    padding:8px;
+    font-weight:900;
+    font-size:9.5pt;
+  }
+
+  /* SILHUETA (impressão): só nas cartas silhueta, ao lado das respostas */
+  .pFront.sil{
+    display:grid;
+    grid-template-columns: 1fr 26mm;   /* LARGURA DO QUADRANTE -> ajusta aqui */
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      "top top"
+      "q   q"
+      "opts sil";
+    column-gap: 3mm;
+    align-items: stretch;
+  }
+  .pFront.sil .pTopline{ grid-area: top; }
+  .pFront.sil .pQ{ grid-area: q; }
+  .pFront.sil .pOpts{ grid-area: opts; }
+
+  .pSil{
+    grid-area: sil;
+    border:1px dashed rgba(0,0,0,.35);
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:2mm;
+    overflow:hidden;
+    background:#fff;
+  }
+  .pSil img{
+    width:100%;
+    height:100%;
+    object-fit:contain; /* NÃO CORTA */
+  }
+
+  /* Capa impressa (2D) */
+  .pBack{
+    height:100%;
+    position:relative;
+    display:flex;
+    align-items:stretch;
+    justify-content:stretch;
+    background:#fff;
+  }
+  .pBack img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+  }
+  .pStamp{
+    position:absolute;
+    bottom:6mm; left:6mm; right:6mm;
+    background:rgba(0,0,0,.65);
+    color:#fff;
+    border-radius:12px;
+    padding:8px 10px;
+    font-weight:900;
+    text-align:center;
+    font-size:10pt;
+  }
+
+  /* ===== IMPRESSÃO ===== */
   @media print{
+    @page{ size:A4; margin:12mm; }
+
     body{ background:#fff !important; color:#000 !important; }
     header{ display:none !important; }
-    main{ max-width:none !important; padding:0 !important; }
-    .grid{
-      grid-template-columns: repeat(3, 1fr) !important;
-      gap:8mm !important;
-    }
-    .memCard{
-      height:90mm !important;
- min-height:85mm;
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-    .memCard .inner{
-      transform: rotateY(180deg) !important; /* sempre frente */
-    }
-    .back{ display:none !important; } /* só frente imprime */
-    .opt{ pointer-events:none !important; }
+    main{ display:none !important; }
+
+    .printArea{ display:block !important; }
+    .sheetTitle{ display:block !important; }
+
+    /* Quebra entre “Frentes” e “Capas” */
+    .pageBreak{ break-before: page; page-break-before: always; }
   }
-.inner{
-  display:grid;                 /* ✅ empilha sem absolute */
-  grid-template-areas:"stack";
-  transform-style:preserve-3d;
-  transition: transform .55s cubic-bezier(.2,.9,.2,1);
-  border-radius:18px;
-}
-.inner{
-  display:grid;
-  grid-template-areas:"stack";
-  transform-style:preserve-3d;
-  transition: transform .55s cubic-bezier(.2,.9,.2,1);
-  border-radius:18px;
+/* ===== LOGOS NO HEADER ===== */
+.brandRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
+.logos{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
 
+.logoImg{
+  height:34px;         /* ajuste aqui se quiser maior/menor */
+  width:auto;
+  display:block;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,.35));
+  border-radius:8px;
+}
+
+.logoImg.small{
+  height:28px;         /* a menor (LUDO) */
+  opacity:.95;
+}
+
+/* Se você NÃO quiser logos na impressão, deixa assim */
+@media print{
+  .logos{ display:none !important; }
+}
 
 </style>
 </head>
@@ -250,9 +380,17 @@ min-height:100%;
 <body>
 <header>
   <div class="brand">
-    <b>Operação Escolar — Cartas (78) • Tela + Impressão</b>
-    <small>Tela: cartas espalhadas • Impressão: idêntica (mesma carta) em A4 3×3</small>
+  <div class="brandRow">
+    <div class="logos">
+      <img class="logoImg" src="falange.png" alt="Falange Educación Lúdica">
+      <img class="logoImg small" src="ludodidakticos.png.jpg" alt="Ludo Didakticos">
+    </div>
   </div>
+
+  <b>Operação Escolar — Cartas (78) • Tela + Impressão</b>
+  <small>Tela: cartas espalhadas • Impressão: idêntica (mesma carta) em A4 3×3</small>
+</div>
+
 
   <div class="hud">
     <div class="pill">Pontos: <b id="score">0</b></div>
@@ -260,7 +398,7 @@ min-height:100%;
     <div class="pill">Total: <b id="total">0</b></div>
 
     <button class="btn secondary" id="btnReembaralhar">Reembaralhar</button>
-    <button class="btn" id="btnPrint">Imprimir</button>
+    <button class="btn" id="btnPrint">Imprimir (Frente + Capa)</button>
   </div>
 </header>
 
@@ -269,11 +407,14 @@ min-height:100%;
   <div class="mini">Clique na carta para virar • Responda • A carta trava após responder • Para imprimir: botão “Imprimir”.</div>
 </main>
 
+<!-- ÁREA DE IMPRESSÃO (só aparece no papel) -->
+<section class="printArea" id="printArea" aria-hidden="true"></section>
+
 <script>
-/* nomes (do seu arquivo ORGANS) */
+/* nomes */
 const ORG_NAME = {"cerebro":"Cérebro","pulmoes":"Pulmões","coracao":"Coração","traqueia":"Traqueia","esofago":"Esôfago","estomago":"Estômago","int_del":"Intestino Delgado","int_gro":"Intestino Grosso","figado":"Fígado","pancreas":"Pâncreas","rins":"Rins","bexiga":"Bexiga","medula":"Medula Espinhal"};
 
-/* DECK COMPLETO (78) importado do seu Operacao-Escolar-Pinca.html */
+/* DECK (seu deck completo) */
 const DECK = [{"orgId":"cerebro","tipo":"Fácil","pts":10,"pergunta":"Qual órgão controla pensamentos, movimentos e sentidos do corpo?","opcoes":["Coração","Pulmões","Cérebro","Estômago"],"correta":"Cérebro","silhueta":false},{"orgId":"cerebro","tipo":"Fácil","pts":10,"pergunta":"Qual órgão faz parte do sistema nervoso e comanda as ações do corpo?","opcoes":["Rins","Cérebro","Fígado","Intestinos"],"correta":"Cérebro","silhueta":false},{"orgId":"cerebro","tipo":"Média","pts":20,"pergunta":"Qual órgão possui regiões como lobo frontal, parietal, temporal e occipital?","opcoes":["Medula espinhal","Cérebro","Pulmões","Coração"],"correta":"Cérebro","silhueta":false},{"orgId":"cerebro","tipo":"Média (Doença)","pts":20,"pergunta":"O Alzheimer é uma doença que afeta principalmente qual órgão?","opcoes":["Pulmões","Coração","Cérebro","Fígado"],"correta":"Cérebro","silhueta":false},{"orgId":"cerebro","tipo":"Difícil","pts":30,"pergunta":"Qual órgão interpreta informações vindas dos sentidos?","opcoes":["Pulmões","Medula espinhal","Cérebro","Coração"],"correta":"Cérebro","silhueta":false},{"orgId":"cerebro","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Fígado","Pulmões","Cérebro","Intestinos"],"correta":"Cérebro","silhueta":true},{"orgId":"pulmoes","tipo":"Fácil","pts":10,"pergunta":"Qual órgão é responsável pela respiração?","opcoes":["Coração","Pulmões","Rins","Fígado"],"correta":"Pulmões","silhueta":false},{"orgId":"pulmoes","tipo":"Fácil","pts":10,"pergunta":"Qual órgão puxa o ar e ajuda o corpo a receber oxigênio?","opcoes":["Pulmões","Estômago","Cérebro","Bexiga"],"correta":"Pulmões","silhueta":false},{"orgId":"pulmoes","tipo":"Média","pts":20,"pergunta":"Qual órgão realiza a troca gasosa (O2 entra e CO2 sai)?","opcoes":["Pulmões","Coração","Fígado","Rins"],"correta":"Pulmões","silhueta":false},{"orgId":"pulmoes","tipo":"Média (Doença)","pts":20,"pergunta":"A asma afeta principalmente qual órgão?","opcoes":["Coração","Pulmões","Fígado","Intestino"],"correta":"Pulmões","silhueta":false},{"orgId":"pulmoes","tipo":"Difícil","pts":30,"pergunta":"Em qual órgão os alvéolos pulmonares estão presentes?","opcoes":["Pulmões","Coração","Estômago","Rins"],"correta":"Pulmões","silhueta":false},{"orgId":"pulmoes","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Pulmões","Cérebro","Fígado","Rins"],"correta":"Pulmões","silhueta":true},{"orgId":"coracao","tipo":"Fácil","pts":10,"pergunta":"Qual órgão bombeia o sangue para todo o corpo?","opcoes":["Pulmões","Coração","Fígado","Rins"],"correta":"Coração","silhueta":false},{"orgId":"coracao","tipo":"Fácil","pts":10,"pergunta":"Qual órgão trabalha sem parar, batendo o tempo todo?","opcoes":["Cérebro","Coração","Estômago","Intestino"],"correta":"Coração","silhueta":false},{"orgId":"coracao","tipo":"Média","pts":20,"pergunta":"Qual órgão possui átrios e ventrículos?","opcoes":["Coração","Pulmões","Rins","Fígado"],"correta":"Coração","silhueta":false},{"orgId":"coracao","tipo":"Média (Doença)","pts":20,"pergunta":"O infarto é um problema que afeta principalmente qual órgão?","opcoes":["Pulmões","Estômago","Coração","Bexiga"],"correta":"Coração","silhueta":false},{"orgId":"coracao","tipo":"Difícil","pts":30,"pergunta":"Qual órgão é responsável por manter a circulação do sangue?","opcoes":["Coração","Pulmões","Fígado","Pâncreas"],"correta":"Coração","silhueta":false},{"orgId":"coracao","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Cérebro","Pulmões","Fígado","Coração"],"correta":"Coração","silhueta":true},{"orgId":"traqueia","tipo":"Fácil","pts":10,"pergunta":"Qual estrutura leva o ar até os pulmões?","opcoes":["Traqueia","Esôfago","Coração","Estômago"],"correta":"Traqueia","silhueta":false},{"orgId":"traqueia","tipo":"Fácil","pts":10,"pergunta":"Qual parte do corpo conecta a laringe aos brônquios?","opcoes":["Esôfago","Traqueia","Rins","Fígado"],"correta":"Traqueia","silhueta":false},{"orgId":"traqueia","tipo":"Média","pts":20,"pergunta":"Qual estrutura possui anéis cartilaginosos para não fechar durante a passagem do ar?","opcoes":["Traqueia","Esôfago","Intestino","Coração"],"correta":"Traqueia","silhueta":false},{"orgId":"traqueia","tipo":"Média (Doença)","pts":20,"pergunta":"A traqueíte é uma inflamação que atinge qual estrutura?","opcoes":["Traqueia","Esôfago","Pulmões","Fígado"],"correta":"Traqueia","silhueta":false},{"orgId":"traqueia","tipo":"Difícil","pts":30,"pergunta":"Qual estrutura se divide em dois brônquios, um para cada pulmão?","opcoes":["Traqueia","Esôfago","Coração","Rins"],"correta":"Traqueia","silhueta":false},{"orgId":"traqueia","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual estrutura é representada?","opcoes":["Traqueia","Esôfago","Pulmões","Bexiga"],"correta":"Traqueia","silhueta":true},{"orgId":"esofago","tipo":"Fácil","pts":10,"pergunta":"Qual estrutura leva o alimento da boca até o estômago?","opcoes":["Traqueia","Esôfago","Pulmões","Coração"],"correta":"Esôfago","silhueta":false},{"orgId":"esofago","tipo":"Fácil","pts":10,"pergunta":"Qual estrutura faz parte do sistema digestório e transporta o bolo alimentar?","opcoes":["Esôfago","Traqueia","Cérebro","Rins"],"correta":"Esôfago","silhueta":false},{"orgId":"esofago","tipo":"Média","pts":20,"pergunta":"Qual estrutura realiza movimentos peristálticos para empurrar o alimento?","opcoes":["Esôfago","Pulmões","Coração","Bexiga"],"correta":"Esôfago","silhueta":false},{"orgId":"esofago","tipo":"Média (Doença)","pts":20,"pergunta":"A esofagite é uma inflamação que afeta qual estrutura?","opcoes":["Esôfago","Traqueia","Pulmões","Fígado"],"correta":"Esôfago","silhueta":false},{"orgId":"esofago","tipo":"Difícil","pts":30,"pergunta":"Qual estrutura pode sofrer refluxo quando o conteúdo do estômago volta?","opcoes":["Esôfago","Traqueia","Intestino","Coração"],"correta":"Esôfago","silhueta":false},{"orgId":"esofago","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual estrutura é representada?","opcoes":["Esôfago","Traqueia","Estômago","Coração"],"correta":"Esôfago","silhueta":true},{"orgId":"estomago","tipo":"Fácil","pts":10,"pergunta":"Qual órgão mistura o alimento com sucos digestivos?","opcoes":["Estômago","Pulmões","Cérebro","Rins"],"correta":"Estômago","silhueta":false},{"orgId":"estomago","tipo":"Fácil","pts":10,"pergunta":"Qual órgão ajuda a iniciar a digestão das proteínas?","opcoes":["Estômago","Fígado","Coração","Bexiga"],"correta":"Estômago","silhueta":false},{"orgId":"estomago","tipo":"Média","pts":20,"pergunta":"Qual órgão produz ácido gástrico?","opcoes":["Estômago","Pâncreas","Fígado","Intestino"],"correta":"Estômago","silhueta":false},{"orgId":"estomago","tipo":"Média (Doença)","pts":20,"pergunta":"A gastrite é uma inflamação que afeta qual órgão?","opcoes":["Estômago","Fígado","Pâncreas","Intestino"],"correta":"Estômago","silhueta":false},{"orgId":"estomago","tipo":"Difícil","pts":30,"pergunta":"Qual órgão transforma o alimento em quimo antes de ir para o intestino?","opcoes":["Estômago","Pulmões","Coração","Rins"],"correta":"Estômago","silhueta":false},{"orgId":"estomago","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Estômago","Fígado","Pulmões","Cérebro"],"correta":"Estômago","silhueta":true},{"orgId":"int_del","tipo":"Fácil","pts":10,"pergunta":"Qual órgão absorve a maior parte dos nutrientes dos alimentos?","opcoes":["Intestino Delgado","Intestino Grosso","Estômago","Fígado"],"correta":"Intestino Delgado","silhueta":false},{"orgId":"int_del","tipo":"Fácil","pts":10,"pergunta":"Qual parte do intestino é mais longa e fina?","opcoes":["Intestino Delgado","Intestino Grosso","Esôfago","Traqueia"],"correta":"Intestino Delgado","silhueta":false},{"orgId":"int_del","tipo":"Média","pts":20,"pergunta":"Qual órgão continua a digestão e absorção após o estômago?","opcoes":["Intestino Delgado","Intestino Grosso","Pulmões","Coração"],"correta":"Intestino Delgado","silhueta":false},{"orgId":"int_del","tipo":"Média (Doença)","pts":20,"pergunta":"A enterite é uma inflamação que pode afetar principalmente qual parte?","opcoes":["Intestino Delgado","Coração","Pulmões","Bexiga"],"correta":"Intestino Delgado","silhueta":false},{"orgId":"int_del","tipo":"Difícil","pts":30,"pergunta":"Qual órgão possui vilosidades intestinais para aumentar a absorção?","opcoes":["Intestino Delgado","Estômago","Fígado","Rins"],"correta":"Intestino Delgado","silhueta":false},{"orgId":"int_del","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Intestino Delgado","Intestino Grosso","Estômago","Pâncreas"],"correta":"Intestino Delgado","silhueta":true},{"orgId":"int_gro","tipo":"Fácil","pts":10,"pergunta":"Qual órgão absorve água e forma as fezes?","opcoes":["Intestino Grosso","Intestino Delgado","Estômago","Pulmões"],"correta":"Intestino Grosso","silhueta":false},{"orgId":"int_gro","tipo":"Fácil","pts":10,"pergunta":"Qual parte do intestino é mais curta e mais larga?","opcoes":["Intestino Grosso","Intestino Delgado","Esôfago","Traqueia"],"correta":"Intestino Grosso","silhueta":false},{"orgId":"int_gro","tipo":"Média","pts":20,"pergunta":"Qual órgão compacta o conteúdo e absorve mais água?","opcoes":["Intestino Grosso","Intestino Delgado","Coração","Rins"],"correta":"Intestino Grosso","silhueta":false},{"orgId":"int_gro","tipo":"Média (Doença)","pts":20,"pergunta":"A colite é uma inflamação que afeta qual órgão?","opcoes":["Intestino Grosso","Intestino Delgado","Fígado","Pâncreas"],"correta":"Intestino Grosso","silhueta":false},{"orgId":"int_gro","tipo":"Difícil","pts":30,"pergunta":"Qual órgão contém a microbiota intestinal, importante para a saúde?","opcoes":["Intestino Grosso","Pulmões","Cérebro","Coração"],"correta":"Intestino Grosso","silhueta":false},{"orgId":"int_gro","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Intestino Grosso","Intestino Delgado","Estômago","Fígado"],"correta":"Intestino Grosso","silhueta":true},{"orgId":"figado","tipo":"Fácil","pts":10,"pergunta":"Qual órgão ajuda a desintoxicar o corpo?","opcoes":["Fígado","Pulmões","Coração","Bexiga"],"correta":"Fígado","silhueta":false},{"orgId":"figado","tipo":"Fácil","pts":10,"pergunta":"Qual órgão produz bile?","opcoes":["Fígado","Pâncreas","Estômago","Intestino"],"correta":"Fígado","silhueta":false},{"orgId":"figado","tipo":"Média","pts":20,"pergunta":"Qual órgão armazena glicogênio e ajuda a regular a glicose?","opcoes":["Fígado","Rins","Pulmões","Cérebro"],"correta":"Fígado","silhueta":false},{"orgId":"figado","tipo":"Média (Doença)","pts":20,"pergunta":"A hepatite afeta principalmente qual órgão?","opcoes":["Fígado","Pulmões","Coração","Intestino"],"correta":"Fígado","silhueta":false},{"orgId":"figado","tipo":"Difícil","pts":30,"pergunta":"Qual órgão metaboliza muitas substâncias e medicamentos?","opcoes":["Fígado","Bexiga","Coração","Pulmões"],"correta":"Fígado","silhueta":false},{"orgId":"figado","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Fígado","Pulmões","Cérebro","Rins"],"correta":"Fígado","silhueta":true},{"orgId":"pancreas","tipo":"Fácil","pts":10,"pergunta":"Qual órgão produz insulina?","opcoes":["Pâncreas","Fígado","Coração","Pulmões"],"correta":"Pâncreas","silhueta":false},{"orgId":"pancreas","tipo":"Fácil","pts":10,"pergunta":"Qual órgão ajuda na digestão produzindo enzimas?","opcoes":["Pâncreas","Bexiga","Rins","Cérebro"],"correta":"Pâncreas","silhueta":false},{"orgId":"pancreas","tipo":"Média","pts":20,"pergunta":"Qual órgão está ligado ao controle do açúcar no sangue?","opcoes":["Pâncreas","Fígado","Intestino Grosso","Pulmões"],"correta":"Pâncreas","silhueta":false},{"orgId":"pancreas","tipo":"Média (Doença)","pts":20,"pergunta":"O diabetes está relacionado principalmente a qual órgão?","opcoes":["Pâncreas","Pulmões","Cérebro","Rins"],"correta":"Pâncreas","silhueta":false},{"orgId":"pancreas","tipo":"Difícil","pts":30,"pergunta":"Qual órgão secreta suco pancreático no intestino delgado?","opcoes":["Pâncreas","Estômago","Coração","Bexiga"],"correta":"Pâncreas","silhueta":false},{"orgId":"pancreas","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Pâncreas","Fígado","Rins","Pulmões"],"correta":"Pâncreas","silhueta":true},{"orgId":"rins","tipo":"Fácil","pts":10,"pergunta":"Qual órgão filtra o sangue e produz urina?","opcoes":["Rins","Coração","Pulmões","Fígado"],"correta":"Rins","silhueta":false},{"orgId":"rins","tipo":"Fácil","pts":10,"pergunta":"Qual órgão ajuda a eliminar substâncias do sangue?","opcoes":["Rins","Estômago","Cérebro","Pulmões"],"correta":"Rins","silhueta":false},{"orgId":"rins","tipo":"Média","pts":20,"pergunta":"Qual órgão ajuda a controlar a quantidade de água e sais no corpo?","opcoes":["Rins","Coração","Fígado","Intestino"],"correta":"Rins","silhueta":false},{"orgId":"rins","tipo":"Média (Doença)","pts":20,"pergunta":"A insuficiência renal afeta qual órgão?","opcoes":["Rins","Pulmões","Coração","Fígado"],"correta":"Rins","silhueta":false},{"orgId":"rins","tipo":"Difícil","pts":30,"pergunta":"Qual órgão produz hormônios que ajudam a regular a pressão arterial?","opcoes":["Rins","Estômago","Bexiga","Pulmões"],"correta":"Rins","silhueta":false},{"orgId":"rins","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Rins","Pulmões","Cérebro","Fígado"],"correta":"Rins","silhueta":true},{"orgId":"bexiga","tipo":"Fácil","pts":10,"pergunta":"Qual órgão armazena a urina?","opcoes":["Bexiga","Rins","Fígado","Pulmões"],"correta":"Bexiga","silhueta":false},{"orgId":"bexiga","tipo":"Fácil","pts":10,"pergunta":"Qual órgão do sistema urinário guarda a urina até ser eliminada?","opcoes":["Bexiga","Coração","Estômago","Cérebro"],"correta":"Bexiga","silhueta":false},{"orgId":"bexiga","tipo":"Média","pts":20,"pergunta":"Qual órgão recebe a urina produzida pelos rins?","opcoes":["Bexiga","Pulmões","Fígado","Intestino"],"correta":"Bexiga","silhueta":false},{"orgId":"bexiga","tipo":"Média (Doença)","pts":20,"pergunta":"A cistite é uma inflamação que afeta qual órgão?","opcoes":["Bexiga","Rins","Coração","Pulmões"],"correta":"Bexiga","silhueta":false},{"orgId":"bexiga","tipo":"Difícil","pts":30,"pergunta":"Qual órgão se contrai para expelir a urina?","opcoes":["Bexiga","Fígado","Cérebro","Pulmões"],"correta":"Bexiga","silhueta":false},{"orgId":"bexiga","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual órgão é representado?","opcoes":["Bexiga","Rins","Coração","Estômago"],"correta":"Bexiga","silhueta":true},{"orgId":"medula","tipo":"Fácil","pts":10,"pergunta":"Qual estrutura transmite informações entre o cérebro e o corpo?","opcoes":["Medula Espinhal","Coração","Pulmões","Estômago"],"correta":"Medula Espinhal","silhueta":false},{"orgId":"medula","tipo":"Fácil","pts":10,"pergunta":"Qual estrutura faz parte do sistema nervoso central junto com o cérebro?","opcoes":["Medula Espinhal","Rins","Fígado","Intestino"],"correta":"Medula Espinhal","silhueta":false},{"orgId":"medula","tipo":"Média","pts":20,"pergunta":"Qual estrutura é responsável por reflexos rápidos, como retirar a mão do fogo?","opcoes":["Medula Espinhal","Coração","Pulmões","Bexiga"],"correta":"Medula Espinhal","silhueta":false},{"orgId":"medula","tipo":"Média (Doença)","pts":20,"pergunta":"Uma lesão medular afeta diretamente qual estrutura?","opcoes":["Medula Espinhal","Pulmões","Fígado","Rins"],"correta":"Medula Espinhal","silhueta":false},{"orgId":"medula","tipo":"Difícil","pts":30,"pergunta":"Qual estrutura está protegida pela coluna vertebral?","opcoes":["Medula Espinhal","Coração","Estômago","Pulmões"],"correta":"Medula Espinhal","silhueta":false},{"orgId":"medula","tipo":"Silhueta","pts":25,"pergunta":"Silhueta: Qual estrutura é representada?","opcoes":["Medula Espinhal","Cérebro","Traqueia","Esôfago"],"correta":"Medula Espinhal","silhueta":true}];
 
 /* util */
@@ -303,10 +444,15 @@ const $grid = document.getElementById("grid");
 const $score = document.getElementById("score");
 const $answered = document.getElementById("answered");
 const $total = document.getElementById("total");
+const $printArea = document.getElementById("printArea");
 
 document.getElementById("btnReembaralhar").addEventListener("click", init);
-document.getElementById("btnPrint").addEventListener("click", ()=>window.print());
+document.getElementById("btnPrint").addEventListener("click", ()=>{
+  renderPrintArea();   // monta frentes + capas
+  window.print();      // imprime de uma vez
+});
 
+/* tela */
 function init(){
   score = 0;
   answered = 0;
@@ -323,7 +469,6 @@ function init(){
 
 function renderGrid(){
   $grid.innerHTML = "";
-
   cards.forEach((c)=>{
     const wrap = document.createElement("div");
     wrap.className = "memCard";
@@ -331,7 +476,6 @@ function renderGrid(){
     const inner = document.createElement("div");
     inner.className = "inner";
 
-    /* BACK */
     const back = document.createElement("div");
     back.className = "face back";
     back.innerHTML = `
@@ -339,16 +483,18 @@ function renderGrid(){
       <div class="stamp">CLIQUE PARA VIRAR</div>
     `;
 
-    /* FRONT */
     const front = document.createElement("div");
     front.className = `face front ${typeClass(c.tipo)}`;
 
     const tag = document.createElement("div");
-    tag.className = "topline";
-    tag.innerHTML = `
-      <span class="tag">${ORG_NAME[c.orgId] || c.orgId}</span>
-      <span class="tag">${c.tipo} • ${c.pts} pts</span>
-    `;
+tag.className = "topline";
+tag.innerHTML = `
+  
+  <span class="tag">💰 ${c.pts}</span>
+`;
+
+
+
 
     const q = document.createElement("div");
     q.className = "q";
@@ -357,7 +503,7 @@ function renderGrid(){
     const sil = document.createElement("div");
     sil.className = "silBox" + (c.silhueta ? " show" : "");
     sil.innerHTML = `
-      <img src="sil_${c.orgId}.png" alt="Silhueta" onerror="this.style.display='none'">
+      <img src="sil_${c.orgId}.png" alt="" onerror="this.style.display='none'">
       <div>
         <div class="silTxt">CARTA DE SILHUETA</div>
         <div class="silHint">Opcional: sil_${c.orgId}.png</div>
@@ -410,15 +556,113 @@ function renderGrid(){
     wrap.appendChild(inner);
 
     wrap.addEventListener("click",()=>{
-      if(c.locked) return;
-      wrap.classList.toggle("flipped");
-    });
+  if(c.locked) return;
+
+  const snd = document.getElementById("sndFlip");
+  if(snd){
+    snd.currentTime = 0;
+    snd.play().catch(()=>{});
+  }
+
+  wrap.classList.toggle("flipped");
+});
+
 
     $grid.appendChild(wrap);
   });
 }
 
+/* impressão (frentes + capas, em 2 blocos/páginas) */
+function renderPrintArea(){
+  $printArea.innerHTML = "";
+
+  // ====== BLOCO 1: FRENTES ======
+  const t1 = document.createElement("h2");
+  t1.className = "sheetTitle";
+  t1.textContent = "FRENTES (Cartas)";
+
+  const g1 = document.createElement("div");
+  g1.className = "sheetGrid";
+
+  cards.forEach((c)=>{
+    const card = document.createElement("div");
+    card.className = "pCard";
+
+    const front = document.createElement("div");
+    front.className = "pFront " + (c.silhueta ? "sil" : "");
+
+    const topline = document.createElement("div");
+    topline.className = "pTopline";
+    topline.innerHTML = `
+  <span class="pTag">💰 ${c.pts}</span>
+`;
+
+
+    const q = document.createElement("div");
+    q.className = "pQ";
+    q.textContent = c.pergunta;
+
+    const opts = document.createElement("div");
+    opts.className = "pOpts";
+    c.opcoes.forEach((txt)=>{
+      const o = document.createElement("div");
+      o.className = "pOpt";
+      o.textContent = txt;
+      opts.appendChild(o);
+    });
+
+    front.appendChild(topline);
+    front.appendChild(q);
+    front.appendChild(opts);
+
+    // silhueta: só nas cartas silhueta e ao lado
+    if(c.silhueta){
+      const sil = document.createElement("div");
+      sil.className = "pSil";
+      sil.innerHTML = `<img src="sil_${c.orgId}.png" alt="" onerror="this.style.display='none'">`;
+      front.appendChild(sil);
+    }
+
+    card.appendChild(front);
+    g1.appendChild(card);
+  });
+
+  // ====== BLOCO 2: CAPAS ======
+  const br = document.createElement("div");
+  br.className = "pageBreak";
+
+  const t2 = document.createElement("h2");
+  t2.className = "sheetTitle";
+  t2.textContent = "CAPAS (Versos)";
+
+  const g2 = document.createElement("div");
+  g2.className = "sheetGrid";
+
+  cards.forEach(()=>{
+    const card = document.createElement("div");
+    card.className = "pCard";
+
+    const back = document.createElement("div");
+    back.className = "pBack";
+    back.innerHTML = `
+      <img src="deck_capa.png" alt="Capa do baralho">
+      <div class="pStamp">CLIQUE PARA VIRAR</div>
+    `;
+
+    card.appendChild(back);
+    g2.appendChild(card);
+  });
+
+  $printArea.appendChild(t1);
+  $printArea.appendChild(g1);
+  $printArea.appendChild(br);
+  $printArea.appendChild(t2);
+  $printArea.appendChild(g2);
+}
+
 init();
 </script>
+<audio id="sndFlip" src="card_flip.mp3" preload="auto"></audio>
+
 </body>
 </html>
