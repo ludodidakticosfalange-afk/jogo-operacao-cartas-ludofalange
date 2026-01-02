@@ -373,6 +373,53 @@
 @media print{
   .logos{ display:none !important; }
 }
+/* ===== MODO DECK (empilhado) ===== */
+.deckWrap{
+  display:none;
+  max-width:520px;
+  margin: 18px auto 0;
+  padding: 14px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  background: rgba(0,0,0,.18);
+}
+
+.deckHud{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+}
+
+.deckBtns{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.deckStage{
+  display:grid;
+  place-items:center;
+}
+
+.deckStage .memCard{
+  width:min(420px, 92vw);
+  height:540px;
+  min-height:540px;
+  max-height:540px;
+}
+
+.deckEmpty{
+  text-align:center;
+  color: var(--muted);
+  font-weight:900;
+  padding: 18px 10px;
+}
+
+.modeDeck .grid{ display:none !important; }
+.modeDeck .deckWrap{ display:block !important; }
 
 </style>
 </head>
@@ -397,12 +444,28 @@
     <div class="pill">Respondidas: <b id="answered">0</b></div>
     <div class="pill">Total: <b id="total">0</b></div>
 
-    <button class="btn secondary" id="btnReembaralhar">Reembaralhar</button>
-    <button class="btn" id="btnPrint">Imprimir (Frente + Capa)</button>
+    <button class="btn secondary" id="btnModo">Modo: Espalhado</button>
+<button class="btn secondary" id="btnReembaralhar">Reembaralhar</button>
+<button class="btn" id="btnPrint">Imprimir (Frente + Capa)</button>
+
   </div>
 </header>
 
 <main>
+<section class="deckWrap" id="deckWrap">
+  <div class="deckHud">
+    <div class="pill">No baralho: <b id="deckLeft">0</b></div>
+    <div class="pill">Descartadas: <b id="deckDone">0</b></div>
+    <div class="deckBtns">
+      <button class="btn secondary" id="btnComprar">Comprar (Próxima)</button>
+      <button class="btn secondary" id="btnResetDeck">Reset Deck</button>
+    </div>
+  </div>
+
+  <div class="deckStage" id="deckStage"></div>
+  <div class="deckEmpty" id="deckEmpty" style="display:none;">Baralho acabou ✅</div>
+</section>
+
   <div class="grid" id="grid"></div>
   <div class="mini">Clique na carta para virar • Responda • A carta trava após responder • Para imprimir: botão “Imprimir”.</div>
 </main>
@@ -426,6 +489,15 @@ function shuffle(arr){
   }
   return a;
 }
+function shuffleOptions(options){
+  const a = (options || []).slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function typeClass(t){
   const s = (t||"").toLowerCase();
   if(s.includes("silhueta")) return "sil";
@@ -445,12 +517,53 @@ const $score = document.getElementById("score");
 const $answered = document.getElementById("answered");
 const $total = document.getElementById("total");
 const $printArea = document.getElementById("printArea");
+// ===== Modo Deck =====
+let viewMode = "grid"; // "grid" | "deck"
+let deckIndex = 0;
+
+const $btnModo = document.getElementById("btnModo");
+const $deckWrap = document.getElementById("deckWrap");
+const $deckStage = document.getElementById("deckStage");
+const $deckLeft = document.getElementById("deckLeft");
+const $deckDone = document.getElementById("deckDone");
+const $btnComprar = document.getElementById("btnComprar");
+const $btnResetDeck = document.getElementById("btnResetDeck");
+const $deckEmpty = document.getElementById("deckEmpty");
+
 
 document.getElementById("btnReembaralhar").addEventListener("click", init);
 document.getElementById("btnPrint").addEventListener("click", ()=>{
   renderPrintArea();   // monta frentes + capas
   window.print();      // imprime de uma vez
 });
+$btnModo.addEventListener("click", ()=>{
+  viewMode = (viewMode === "grid") ? "deck" : "grid";
+  document.body.classList.toggle("modeDeck", viewMode === "deck");
+  $btnModo.textContent = (viewMode === "deck") ? "Modo: Deck" : "Modo: Espalhado";
+  renderCurrentView();
+});
+
+$btnComprar.addEventListener("click", ()=>{
+  if(viewMode !== "deck") return;
+
+  // compra a próxima carta
+  deckIndex++;
+
+  // pula cartas já respondidas
+  while(deckIndex < cards.length && cards[deckIndex].locked){
+    deckIndex++;
+  }
+
+  renderDeck();
+});
+
+$btnResetDeck.addEventListener("click", ()=>{
+  if(viewMode !== "deck") return;
+  deckIndex = 0;
+  renderCurrentView(); // garante limpeza visual
+});
+
+
 
 /* tela */
 function init(){
@@ -459,117 +572,180 @@ function init(){
   $score.textContent = score;
   $answered.textContent = answered;
 
-  cards = shuffle(DECK).map((c, idx)=>({
-    ...c, idx, locked:false, flipped:false
-  }));
+  cards = shuffle(DECK).map((c, idx)=>{
+
+  // embaralha as alternativas
+  const opcoesEmbaralhadas = shuffleOptions(c.opcoes);
+
+  return {
+    orgId: c.orgId,
+    tipo: c.tipo,
+    pts: c.pts,
+    pergunta: c.pergunta,
+    opcoes: opcoesEmbaralhadas, // 👈 agora vem aleatório
+    correta: c.correta,         // continua funcionando
+    silhueta: !!c.silhueta,
+    idx,
+    locked: false,
+    flipped: false
+  };
+});
+
+
 
   $total.textContent = cards.length;
-  renderGrid();
+  deckIndex = 0;
+renderCurrentView();
+
+}
+function buildCardElement(c, isDeck){
+  const wrap = document.createElement("div");
+  wrap.className = "memCard" + (c.locked ? " locked" : "");
+
+
+  const inner = document.createElement("div");
+  inner.className = "inner";
+
+  const back = document.createElement("div");
+  back.className = "face back";
+  back.innerHTML = `
+    <img src="deck_capa.png" alt="Capa do baralho">
+    <div class="stamp">CLIQUE PARA VIRAR</div>
+  `;
+
+  const front = document.createElement("div");
+  front.className = `face front ${typeClass(c.tipo)}`;
+
+  const tag = document.createElement("div");
+  tag.className = "topline";
+  tag.innerHTML = `<span class="tag">💰 ${c.pts}</span>`;
+
+  const q = document.createElement("div");
+  q.className = "q";
+  q.textContent = c.pergunta;
+
+  const sil = document.createElement("div");
+  sil.className = "silBox" + (c.silhueta ? " show" : "");
+  sil.innerHTML = `
+    <img src="sil_${c.orgId}.png" alt="" onerror="this.style.display='none'">
+    <div>
+      <div class="silTxt">CARTA DE SILHUETA</div>
+      <div class="silHint">Opcional: sil_${c.orgId}.png</div>
+    </div>
+  `;
+
+  const opts = document.createElement("div");
+  opts.className = "opts";
+
+  c.opcoes.forEach((txt)=>{
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.type = "button";
+    b.textContent = txt;
+
+    b.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      if(c.locked) return;
+
+      const all = opts.querySelectorAll(".opt");
+      all.forEach(x=>x.classList.add("lock"));
+
+      if(txt === c.correta){
+        b.classList.add("correct");
+        score += Number(c.pts||0);
+        $score.textContent = score;
+      }else{
+        b.classList.add("wrong");
+        all.forEach(x=>{
+          if(x.textContent === c.correta) x.classList.add("correct");
+        });
+      }
+
+      c.locked = true;
+      wrap.classList.add("locked");
+      answered++;
+      $answered.textContent = answered;
+
+      // Se estiver no modo deck, “compra a próxima” automaticamente após responder
+      if(isDeck){
+        deckIndex++;
+        renderDeck();
+      }
+    });
+
+    opts.appendChild(b);
+  });
+
+  front.appendChild(tag);
+  front.appendChild(q);
+  front.appendChild(sil);
+  front.appendChild(opts);
+
+  inner.appendChild(back);
+  inner.appendChild(front);
+  wrap.appendChild(inner);
+
+  wrap.addEventListener("click",()=>{
+    if(c.locked) return;
+
+    const snd = document.getElementById("sndFlip");
+    if(snd){
+      snd.currentTime = 0;
+      snd.play().catch(()=>{});
+    }
+
+    wrap.classList.toggle("flipped");
+    c.flipped = wrap.classList.contains("flipped");
+  });
+
+  return wrap;
 }
 
 function renderGrid(){
   $grid.innerHTML = "";
-  cards.forEach((c)=>{
-    const wrap = document.createElement("div");
-    wrap.className = "memCard";
 
-    const inner = document.createElement("div");
-    inner.className = "inner";
-
-    const back = document.createElement("div");
-    back.className = "face back";
-    back.innerHTML = `
-      <img src="deck_capa.png" alt="Capa do baralho">
-      <div class="stamp">CLIQUE PARA VIRAR</div>
-    `;
-
-    const front = document.createElement("div");
-    front.className = `face front ${typeClass(c.tipo)}`;
-
-    const tag = document.createElement("div");
-tag.className = "topline";
-tag.innerHTML = `
-  
-  <span class="tag">💰 ${c.pts}</span>
-`;
+  const frag = document.createDocumentFragment();
+  for(const c of cards){
+    frag.appendChild(buildCardElement(c, false));
+  }
+  $grid.appendChild(frag);
+}
 
 
+function renderCurrentView(){
+  if(viewMode === "deck"){
+    document.body.classList.add("modeDeck");
+    $btnModo.textContent = "Modo: Deck";
+    renderDeck();
+  }else{
+    document.body.classList.remove("modeDeck");
+    $btnModo.textContent = "Modo: Espalhado";
+    renderGrid();
+  }
+}
 
+function renderDeck(){
+  $deckStage.innerHTML = "";
+  $deckEmpty.style.display = "none";
 
-    const q = document.createElement("div");
-    q.className = "q";
-    q.textContent = c.pergunta;
+  const total = cards.length;
+  const done = cards.filter(c=>c.locked).length;
+  // deckIndex aponta para “onde eu estou comprando”
+  while(deckIndex < total && cards[deckIndex].locked) deckIndex++;
 
-    const sil = document.createElement("div");
-    sil.className = "silBox" + (c.silhueta ? " show" : "");
-    sil.innerHTML = `
-      <img src="sil_${c.orgId}.png" alt="" onerror="this.style.display='none'">
-      <div>
-        <div class="silTxt">CARTA DE SILHUETA</div>
-        <div class="silHint">Opcional: sil_${c.orgId}.png</div>
-      </div>
-    `;
+  const left = Math.max(0, total - deckIndex);
+  $deckLeft.textContent = left;
+  $deckDone.textContent = done;
 
-    const opts = document.createElement("div");
-    opts.className = "opts";
-
-    c.opcoes.forEach((txt)=>{
-      const b = document.createElement("button");
-      b.className = "opt";
-      b.type = "button";
-      b.textContent = txt;
-
-      b.addEventListener("click",(e)=>{
-        e.stopPropagation();
-        if(c.locked) return;
-
-        const all = opts.querySelectorAll(".opt");
-        all.forEach(x=>x.classList.add("lock"));
-
-        if(txt === c.correta){
-          b.classList.add("correct");
-          score += Number(c.pts||0);
-          $score.textContent = score;
-        }else{
-          b.classList.add("wrong");
-          all.forEach(x=>{
-            if(x.textContent === c.correta) x.classList.add("correct");
-          });
-        }
-
-        c.locked = true;
-        wrap.classList.add("locked");
-        answered++;
-        $answered.textContent = answered;
-      });
-
-      opts.appendChild(b);
-    });
-
-    front.appendChild(tag);
-    front.appendChild(q);
-    front.appendChild(sil);
-    front.appendChild(opts);
-
-    inner.appendChild(back);
-    inner.appendChild(front);
-    wrap.appendChild(inner);
-
-    wrap.addEventListener("click",()=>{
-  if(c.locked) return;
-
-  const snd = document.getElementById("sndFlip");
-  if(snd){
-    snd.currentTime = 0;
-    snd.play().catch(()=>{});
+  if(deckIndex >= total){
+    $deckEmpty.style.display = "block";
+    return;
   }
 
-  wrap.classList.toggle("flipped");
-});
-
-
-    $grid.appendChild(wrap);
-  });
+  // Renderiza só a carta do topo
+  const c = cards[deckIndex];
+  const cardEl = buildCardElement(c, /*isDeck*/true);
+  $deckStage.appendChild(cardEl);
 }
 
 /* impressão (frentes + capas, em 2 blocos/páginas) */
